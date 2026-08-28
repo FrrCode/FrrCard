@@ -1,0 +1,10 @@
+.env
+dist/
+node_modules/
+
+# Card content is personal — keep the folders, ignore what's in them.
+data/*
+!data/.gitkeep
+!data/example.json.sample
+public/*/*
+!public/*/.gitkeep

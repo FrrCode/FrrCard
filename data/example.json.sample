@@ -1,0 +1,21 @@
+{
+  "name": "Jane Doe",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "jobTitle": "Ceramicist & Studio Owner",
+  "description": "Contact links, social profiles, and business card for Jane Doe.",
+  "photoUrl": "./jane.jpg",
+  "faviconUrl": "https://example.com/favicon.png",
+  "domain": "jane.example.com",
+  "links": [
+    { "type": "website", "value": "https://jane.example.com" },
+    { "type": "company", "value": "https://studio.example.com" },
+    { "type": "schedule", "value": "https://cal.com/jane", "label": "Book a studio visit" },
+    { "type": "linkedin", "value": "https://www.linkedin.com/in/jane" },
+    { "type": "email", "value": "jane@example.com" },
+    { "type": "phone", "value": "+1 555 123 4567" },
+    { "type": "whatsapp", "value": "+1 555 123 4567" },
+    { "type": "telegram", "value": "@jane" },
+    { "type": "instagram", "value": "@jane.makes" }
+  ]
+}

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{NAME}} — {{JOB_TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{CANONICAL_URL}}">
+<link rel="icon" type="image/png" href="{{FAVICON_URL}}">
+
+<meta property="og:type" content="profile">
+<meta property="og:title" content="{{NAME}} — {{JOB_TITLE}}">
+<meta property="og:description" content="{{DESCRIPTION}}">
+<meta property="og:url" content="{{CANONICAL_URL}}">
+<meta property="og:image" content="{{OG_IMAGE}}">
+<meta property="og:site_name" content="{{NAME}}">
+<meta property="profile:first_name" content="{{FIRST_NAME}}">
+<meta property="profile:last_name" content="{{LAST_NAME}}">
+
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{NAME}} — {{JOB_TITLE}}">
+<meta name="twitter:description" content="{{DESCRIPTION}}">
+<meta name="twitter:image" content="{{OG_IMAGE}}">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card-bg: #ffffff;
+    --text: #1c1c1e;
+    --muted: #6e6e73;
+    --border: #e5e5ea;
+    --link-bg: #f2f2f7;
+    --link-bg-hover: #e5e5ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --card-bg: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #a1a1a6;
+      --border: #3a3a3c;
+      --link-bg: #2c2c2e;
+      --link-bg-hover: #3a3a3c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 16px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .photo {
+    width: 128px;
+    height: 128px;
+    border-radius: 20px;
+    object-fit: cover;
+    margin: 0 auto 16px;
+    display: block;
+  }
+
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+  }
+
+  .title {
+    font-size: 15px;
+    color: var(--muted);
+    margin: 0 0 24px;
+  }
+
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--link-bg);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background 0.15s ease;
+  }
+
+  .link:active,
+  .link:hover {
+    background: var(--link-bg-hover);
+  }
+
+  .link svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .qr-section {
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .qr-section img {
+    width: 140px;
+    height: 140px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 8px;
+  }
+
+  .qr-link-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .site-url {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    word-break: break-all;
+  }
+
+  .site-url:hover {
+    text-decoration: underline;
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 8px;
+    background: var(--link-bg);
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .copy-btn:hover {
+    background: var(--link-bg-hover);
+  }
+
+  .copy-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .copy-btn .icon-check {
+    display: none;
+  }
+
+  .copy-btn.copied {
+    color: #34c759;
+  }
+
+  .copy-btn.copied .icon-copy {
+    display: none;
+  }
+
+  .copy-btn.copied .icon-check {
+    display: block;
+  }
+
+  .credit {
+    display: inline-block;
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+  }
+
+  .credit:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <img class="photo" src="{{PHOTO_URL}}" alt="{{NAME}}">
+    <h1>{{NAME}}</h1>
+    <p class="title">{{JOB_TITLE}}</p>
+
+    <div class="links">
+{{LINKS}}
+    </div>
+
+    <div class="qr-section">
+      <img src="{{QR_IMAGE}}" alt="QR code linking to {{QR_LABEL}}">
+      <div class="qr-link-row">
+        <a class="site-url" href="{{CANONICAL_URL}}">{{CANONICAL_URL}}</a>
+        <button class="copy-btn" type="button" data-copy-text="{{CANONICAL_URL}}" aria-label="Copy link to clipboard">
+          <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+    </div>
+{{CREDIT}}
+  </div>
+
+  <script>
+    document.querySelectorAll('.copy-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.copyText).then(() => {
+          btn.classList.add('copied');
+          setTimeout(() => btn.classList.remove('copied'), 1500);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
