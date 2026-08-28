@@ -8,12 +8,12 @@ const TEMPLATE_PATH = path.join(ROOT, 'template.html');
 const DATA_DIR = path.join(ROOT, 'data');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DIST_DIR = path.join(ROOT, 'dist');
-const REPO_URL = 'https://github.com/petr-nazarov/card';
+const CREDIT_URL = 'https://apps.frrcode.com/en/frrcard/';
 
 // Small "Built with FrrCard" link in the card footer. Opt out per card with
 // `"credit": false` in the data file.
 const CREDIT_HTML =
-  `    <a class="credit" href="${REPO_URL}" target="_blank" rel="noopener">Built with FrrCard</a>`;
+  `    <a class="credit" href="${CREDIT_URL}" target="_blank" rel="noopener">Built with FrrCard</a>`;
 
 const ICONS = {
   website: {

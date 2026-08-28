@@ -131,9 +131,9 @@ a default label, an `href` function, and whether it opens in a new tab.
 
 ### The credit link
 
-Every card ends with a small, muted **Built with FrrCard** link back to this
-repository. It's on by default — if FrrCard is useful to you, leaving it there is
-how other people find it.
+Every card ends with a small, muted **Built with FrrCard** link to the FrrCard
+project page. It's on by default — if FrrCard is useful to you, leaving it there
+is how other people find it.
 
 Turning it off is one line in the card's data file, no strings attached:
 
