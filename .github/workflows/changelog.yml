@@ -1,7 +1,9 @@
-name: Changelog
+name: Changelog & release
 
 # Keeps CHANGELOG.md in step with the history: regenerated on every push to
 # main and whenever a v* tag lands, then committed back to main if it changed.
+# A tag also gets a GitHub release, with the notes taken from the changelog that
+# was just regenerated — so the section always exists by the time it is read.
 on:
   push:
     branches: [main]
@@ -45,3 +47,26 @@ jobs:
           git add CHANGELOG.md
           git commit -m "chore(changelog): update CHANGELOG.md"
           git push origin HEAD:main
+
+      # A pushed tag is not a release — GitHub only lists it on the releases
+      # page with an empty body until someone creates one.
+      - name: Publish the GitHub release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          notes="$(node changelog.js --notes "$TAG")"
+
+          # 1.2.3-rc.1 and friends ship as prereleases.
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes "$notes"
+            echo "updated the notes on $TAG"
+          else
+            # shellcheck disable=SC2086
+            gh release create "$TAG" --title "$TAG" --notes "$notes" $prerelease
+            echo "published $TAG"
+          fi

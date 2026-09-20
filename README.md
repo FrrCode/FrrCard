@@ -381,10 +381,19 @@ just release v1.1.0   # cut a release
 `just release` is the whole ceremony: it refuses anything but a clean `main` and
 an unused semver tag, writes the version into `package.json`, commits that as
 `chore(release): v1.1.0`, tags it, and pushes the branch and the tag. CI takes it
-from there — the image goes to GHCR under `1.1.0`, `1.1` and `latest`, and the
-changelog workflow folds everything that was under **Unreleased** into a
-`## [v1.1.0]` section with a compare link and commits it back to `main`. Pull
-afterwards, since that commit lands on top of yours.
+from there:
+
+- the image goes to GHCR under `1.1.0`, `1.1` and `latest`;
+- everything that was under **Unreleased** moves into a `## [v1.1.0]` section
+  with a compare link, committed back to `main` — so pull afterwards, since that
+  commit lands on top of yours;
+- the **GitHub release** is published with that section as its body, marked a
+  prerelease when the version has a `-rc.1`-style suffix.
+
+That last step matters because a pushed tag is *not* a release. GitHub lists the
+tag on the releases page with an empty body until something creates one. The
+notes come from `node changelog.js --notes v1.1.0`, which reads the history
+rather than scraping the rendered markdown back out of `CHANGELOG.md`.
 
 Release commits describe the release rather than the project, so `changelog.js`
 leaves them out of the entries — while still letting the tag on one open its

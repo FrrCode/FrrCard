@@ -2,8 +2,9 @@
 // Regenerates CHANGELOG.md from the git history. Commits are read as
 // Conventional Commits (`type(scope)!: subject`) and grouped per tag.
 //
-//   node changelog.js           rewrite CHANGELOG.md
-//   node changelog.js --check   exit 1 if CHANGELOG.md is out of date (CI)
+//   node changelog.js               rewrite CHANGELOG.md
+//   node changelog.js --check       exit 1 if CHANGELOG.md is out of date (CI)
+//   node changelog.js --notes v1.1  print one release's body, for gh release
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
@@ -114,12 +115,10 @@ function renderEntry(entry, url) {
   return `- ${scope}${entry.subject}${link}`;
 }
 
-function renderRelease(release, previous, url) {
+// The sections of one release, without its heading — this is also the body of
+// the GitHub release, where the tag is already the title.
+function renderSections(release, url) {
   const lines = [];
-  const heading = url && previous
-    ? `## [${release.version}](${url}/compare/${previous}...${release.version === UNRELEASED ? 'HEAD' : release.version})`
-    : `## ${release.version}`;
-  lines.push(release.date ? `${heading} — ${release.date}` : heading, '');
 
   const breaking = release.entries.filter((e) => e.breaking);
   if (breaking.length) {
@@ -137,6 +136,30 @@ function renderRelease(release, previous, url) {
   return lines.join('\n');
 }
 
+function renderRelease(release, previous, url) {
+  const heading = url && previous
+    ? `## [${release.version}](${url}/compare/${previous}...${release.version === UNRELEASED ? 'HEAD' : release.version})`
+    : `## ${release.version}`;
+  return [release.date ? `${heading} — ${release.date}` : heading, '', renderSections(release, url)].join('\n');
+}
+
+// `--notes <tag>`: the body for a GitHub release, straight from the history
+// rather than scraped back out of the rendered markdown.
+function notesFor(version) {
+  const url = repoUrl();
+  const releases = groupByRelease(readCommits());
+  const wanted = version.replace(/^refs\/tags\//, '');
+  const release = releases.find((r) => r.version === wanted);
+  if (!release) throw new Error(`no release "${wanted}" in the history — is the tag pushed?`);
+
+  const previous = releases[releases.indexOf(release) + 1]?.version;
+  const sections = renderSections(release, url).trimEnd();
+  const compare = url && previous
+    ? `\n\n**Full changelog:** ${url}/compare/${previous}...${wanted}`
+    : '';
+  return `${sections || '_No changes recorded._'}${compare}\n`;
+}
+
 function render() {
   const url = repoUrl();
   const releases = groupByRelease(readCommits());
@@ -148,6 +171,14 @@ function render() {
 }
 
 function main() {
+  const notesIndex = process.argv.indexOf('--notes');
+  if (notesIndex !== -1) {
+    const version = process.argv[notesIndex + 1];
+    if (!version) throw new Error('--notes needs a tag, e.g. --notes v1.1.0');
+    process.stdout.write(notesFor(version));
+    return;
+  }
+
   const changelog = render();
   const check = process.argv.includes('--check');
   const current = fs.existsSync(OUT_PATH) ? fs.readFileSync(OUT_PATH, 'utf8') : null;
@@ -169,4 +200,9 @@ function main() {
   console.log(`wrote ${path.relative(process.cwd(), OUT_PATH)}`);
 }
 
-main();
+try {
+  main();
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
