@@ -17,6 +17,14 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 - **release:** publish a GitHub release when a tag is pushed ([`d5bb9a5`](https://github.com/FrrCode/FrrCard/commit/d5bb9a5232c4b660399034cad35e04ec22ae6f57))
 
+### Documentation
+
+- **readme:** lead with docker compose and move the checkout to development ([`269f07a`](https://github.com/FrrCode/FrrCard/commit/269f07ad333cb87544dff73f6beb9e6f1feef7b8))
+
+### Build
+
+- **just:** derive the release version from a bump level ([`7f4a425`](https://github.com/FrrCode/FrrCard/commit/7f4a42507772ff2a98d65e1a443bbc2311624b17))
+
 ## v1.1.0 — 2026-09-20
 
 ### Features
