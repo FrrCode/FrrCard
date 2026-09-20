@@ -26,6 +26,29 @@ release bump="patch":
       *) echo "not a bump: {{bump}} (want patch, minor or major)" >&2; exit 1 ;;
     esac
 
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    if [[ "$branch" != "main" ]]; then
+      echo "release from main, not $branch" >&2
+      exit 1
+    fi
+    if ! git diff --quiet HEAD; then
+      echo "working tree is dirty — commit first" >&2
+      exit 1
+    fi
+
+    # CI commits CHANGELOG.md back to main after every push, so main is usually
+    # a commit behind by the time anyone releases. Catch up before reading the
+    # version out of package.json, rather than failing on the push at the end.
+    git fetch --tags origin
+    if ! git merge-base --is-ancestor origin/main HEAD; then
+      if ! git merge-base --is-ancestor HEAD origin/main; then
+        echo "main and origin/main have diverged — reconcile them first" >&2
+        exit 1
+      fi
+      echo "fast-forwarding main to origin/main"
+      git merge --ff-only origin/main
+    fi
+
     number="$(node -e '
       const fs = require("fs");
       const current = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
@@ -41,15 +64,6 @@ release bump="patch":
     ' "{{bump}}")"
     tag="v${number}"
 
-    branch="$(git rev-parse --abbrev-ref HEAD)"
-    if [[ "$branch" != "main" ]]; then
-      echo "release from main, not $branch" >&2
-      exit 1
-    fi
-    if ! git diff --quiet HEAD; then
-      echo "working tree is dirty — commit first" >&2
-      exit 1
-    fi
     if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
       echo "$tag already exists" >&2
       exit 1
@@ -65,7 +79,12 @@ release bump="patch":
     git add package.json
     git commit -m "chore(release): $tag"
     git tag -a "$tag" -m "$tag"
-    git push origin main
-    git push origin "$tag"
+    # One atomic push: a rejected main must not leave the tag on the remote
+    # pointing at a commit nobody has.
+    if ! git push --atomic origin main "$tag"; then
+      echo "push rejected — origin moved since the fetch; nothing was pushed." >&2
+      echo "reconcile main with origin, then push main and $tag yourself." >&2
+      exit 1
+    fi
 
     echo "pushed $tag — CI publishes the image and folds the tag into CHANGELOG.md"
