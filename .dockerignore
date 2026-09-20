@@ -1,0 +1,5 @@
+# The image carries the renderer, not anyone's card.
+*
+!build.js
+!serve.js
+!template.html

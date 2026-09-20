@@ -1,0 +1,15 @@
+services:
+  frrcard:
+    image: ghcr.io/frrcode/frrcard:latest
+    # Swap the image line for this to build from a checkout instead:
+    # build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Serve a single card at / instead of every card at /<name>/:
+      # CARD: jane
+      PORT: 8080
+    volumes:
+      - ./data:/app/data:ro
+      - ./public:/app/public:ro
