@@ -1,0 +1,123 @@
+name: Docker
+
+# Builds the image, proves it serves a card, and pushes it to GHCR.
+# Pull requests build and test but never push.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - build.js
+      - serve.js
+      - template.html
+      - .github/workflows/docker.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - build.js
+      - serve.js
+      - template.html
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the image name
+        # GHCR rejects capitals and the repository is FrrCode/FrrCard.
+        run: |
+          echo "IMAGE=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      # Single-arch and loaded into the local daemon so the next step can run it.
+      - name: Build for the smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: frrcard:smoke
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          mkdir -p /tmp/smoke/data /tmp/smoke/public
+          cp data/example.json.sample /tmp/smoke/data/jane.json
+
+          docker run -d --name frrcard -p 8080:8080 \
+            -v /tmp/smoke/data:/app/data:ro \
+            -v /tmp/smoke/public:/app/public:ro \
+            frrcard:smoke
+
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8080/healthz >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          curl -fsS  http://localhost:8080/healthz
+          curl -fsS  http://localhost:8080/jane/ | grep -q 'Jane Doe'
+          curl -fsSI http://localhost:8080/jane/contact.vcf | grep -qi 'text/vcard'
+          curl -fsS  http://localhost:8080/jane/contact.vcf | grep -q '^FN:Jane Doe'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/nope)" = 404
+
+          echo "the image serves the card, its contact file and the health endpoint"
+
+      - name: Container log
+        if: always()
+        run: docker logs frrcard 2>&1 || true
+
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "### Pushed"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
