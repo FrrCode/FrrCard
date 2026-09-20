@@ -3,6 +3,7 @@
   "firstName": "Jane",
   "lastName": "Doe",
   "jobTitle": "Ceramicist & Studio Owner",
+  "organization": "Doe Ceramics",
   "description": "Contact links, social profiles, and business card for Jane Doe.",
   "photoUrl": "./jane.jpg",
   "faviconUrl": "https://example.com/favicon.png",

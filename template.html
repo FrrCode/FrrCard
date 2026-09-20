@@ -32,6 +32,9 @@
     --border: #e5e5ea;
     --link-bg: #f2f2f7;
     --link-bg-hover: #e5e5ea;
+    --accent: #0071e3;
+    --accent-hover: #0060c0;
+    --accent-text: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -42,6 +45,9 @@
       --border: #3a3a3c;
       --link-bg: #2c2c2e;
       --link-bg-hover: #3a3a3c;
+      --accent: #0a84ff;
+      --accent-hover: #3b9dff;
+      --accent-text: #ffffff;
     }
   }
 
@@ -113,6 +119,16 @@
   .link:active,
   .link:hover {
     background: var(--link-bg-hover);
+  }
+
+  .link-primary {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .link-primary:active,
+  .link-primary:hover {
+    background: var(--accent-hover);
   }
 
   .link svg {
@@ -217,7 +233,7 @@
     <p class="title">{{JOB_TITLE}}</p>
 
     <div class="links">
-{{LINKS}}
+{{VCARD}}{{LINKS}}
     </div>
 
     <div class="qr-section">
