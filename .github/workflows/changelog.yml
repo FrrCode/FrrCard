@@ -1,0 +1,47 @@
+name: Changelog
+
+# Keeps CHANGELOG.md in step with the history: regenerated on every push to
+# main and whenever a v* tag lands, then committed back to main if it changed.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['CHANGELOG.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: changelog
+  cancel-in-progress: false
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Always work on main — a tag push should still update the branch.
+          ref: main
+          # The generator reads the whole history and every tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Regenerate CHANGELOG.md
+        run: node changelog.js
+
+      - name: Commit if it changed
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md already up to date"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore(changelog): update CHANGELOG.md"
+          git push origin HEAD:main
