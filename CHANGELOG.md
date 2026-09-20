@@ -10,6 +10,7 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ### Features
 
+- **docker:** serve a bundled example card when no data is mounted ([`f9ab568`](https://github.com/FrrCode/FrrCard/commit/f9ab568f178b64414840179c23e712f9a4c6e3ad))
 - **cards:** add a cv link type and drop the Save Contact accent ([`400f073`](https://github.com/FrrCode/FrrCard/commit/400f073523963db2cd4b0c84aed71c76c4f7a550))
 
 ### Fixes
