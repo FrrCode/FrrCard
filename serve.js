@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+const EXAMPLE_KEY = 'example';
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.resolve(
@@ -63,6 +64,18 @@ const server = http.createServer((req, res) => {
   if (req.url === '/healthz') {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
     res.end('ok\n');
+    return;
+  }
+
+  // A first run has nothing but the bundled example card, and / would 404 —
+  // point it at the card rather than letting the install look broken.
+  if (
+    req.url === '/' &&
+    !fs.existsSync(path.join(ROOT, 'index.html')) &&
+    fs.existsSync(path.join(ROOT, EXAMPLE_KEY, 'index.html'))
+  ) {
+    res.writeHead(302, { location: `/${EXAMPLE_KEY}/` });
+    res.end();
     return;
   }
 

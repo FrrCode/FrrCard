@@ -3,3 +3,5 @@
 !build.js
 !serve.js
 !template.html
+# ...but it does carry the demo card, shown until a real data/ is mounted.
+!example.json

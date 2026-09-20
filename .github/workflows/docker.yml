@@ -88,9 +88,31 @@ jobs:
 
           echo "the image serves the card, its contact file and the health endpoint"
 
-      - name: Container log
+          # A first run has no data of its own: the image must fall back to the
+          # bundled example rather than serving 404s.
+          mkdir -p /tmp/smoke/empty
+
+          docker run -d --name frrcard-empty -p 8081:8080 \
+            -v /tmp/smoke/empty:/app/data:ro \
+            -v /tmp/smoke/public:/app/public:ro \
+            frrcard:smoke
+
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:8081/healthz >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/)" = 302
+          curl -fsSL http://localhost:8081/ | grep -q 'Jane Doe'
+          curl -fsS  http://localhost:8081/example/contact.vcf | grep -q '^FN:Jane Doe'
+
+          echo "with an empty data/ the image falls back to the bundled example card"
+
+      - name: Container logs
         if: always()
-        run: docker logs frrcard 2>&1 || true
+        run: |
+          docker logs frrcard 2>&1 || true
+          docker logs frrcard-empty 2>&1 || true
 
       - uses: docker/login-action@v3
         if: github.event_name != 'pull_request'

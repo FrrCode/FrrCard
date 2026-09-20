@@ -255,8 +255,9 @@ location = /contact.vcf { default_type text/vcard; }
 ## Docker
 
 A prebuilt image lives at **`ghcr.io/frrcode/frrcard`** (amd64 and arm64). It
-holds the renderer and a small static server — no card data is baked in. On start
-it renders whatever JSON it finds in the mounted `data/` and serves the result.
+holds the renderer, a small static server and one demo card — nobody's real card
+data is baked in. On start it renders whatever JSON it finds in the mounted
+`data/` and serves the result.
 
 The repo ships a `compose.yaml`:
 
@@ -276,6 +277,24 @@ services:
 docker compose up -d        # render the cards and serve them
 docker compose restart      # re-render after editing a data file
 docker compose logs -f      # the build output lands here
+```
+
+**The first run needs no data file.** With `data/` empty — or not mounted at all
+— the container renders the bundled demo card, serves it at `/example/` and
+redirects `/` to it, so `http://localhost:8080` shows a working card straight
+away. The log says as much:
+
+```
+no data/*.json found — building the bundled example card
+put your own <name>.json in data/ and restart to replace dist/example/
+```
+
+Do that and the demo is gone: as soon as `data/` holds a single `*.json`, only
+your cards are built. Start from the template if you like —
+
+```bash
+cp data/example.json.sample data/jane.json   # then edit it
+docker compose restart
 ```
 
 Every card is served under its own path: `data/jane.json` becomes
@@ -298,7 +317,9 @@ A few things worth knowing:
 - **Cards render at startup**, so editing a data file means `docker compose
   restart`. The build takes milliseconds.
 - **`/` returns 404 when serving several cards.** There is no index listing who
-  lives on the box — reach a card by its own path, or use `CARD`.
+  lives on the box — reach a card by its own path, or use `CARD`. The one
+  exception is the first run described above, where `/` redirects to
+  `/example/`.
 - **`/healthz`** answers `ok`; the image's `HEALTHCHECK` uses it.
 - **Nothing is written to the host.** Add `- ./dist:/app/dist` to the volumes if
   you want the rendered files back on your side.
@@ -332,6 +353,7 @@ build.js         ✅  the renderer
 serve.js         ✅  the static server (local look, and the image)
 changelog.js     ✅  the CHANGELOG.md generator
 template.html    ✅  markup, CSS, copy-button script
+example.json     ✅  the demo card the image falls back to
 justfile         ✅  build, deploy, changelog + release recipes
 Dockerfile       ✅  the image
 compose.yaml     ✅  how to run it

@@ -19,9 +19,11 @@ RUN apk add --no-cache libstdc++ \
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
-COPY build.js serve.js template.html ./
+COPY build.js serve.js template.html example.json ./
 
-# data/ and public/ are mounted read-only; dist/ is rebuilt on every start.
+# data/ and public/ are mounted read-only; dist/ is rebuilt on every start. An
+# empty or unmounted data/ falls back to example.json, so a bare `docker run`
+# still serves a card.
 RUN mkdir -p /app/data /app/public /app/dist && chown node:node /app/dist
 
 ENV PORT=8080 \

@@ -9,6 +9,10 @@ const TEMPLATE_PATH = path.join(ROOT, 'template.html');
 const DATA_DIR = path.join(ROOT, 'data');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DIST_DIR = path.join(ROOT, 'dist');
+// Demo card, rendered only when data/ holds no JSON of its own. It is what a
+// fresh `docker compose up` serves instead of a 404.
+const EXAMPLE_PATH = path.join(ROOT, 'example.json');
+const EXAMPLE_KEY = 'example';
 const CREDIT_URL = 'https://apps.frrcode.com/en/frrcard/';
 
 const VCARD_FILE = 'contact.vcf';
@@ -165,6 +169,27 @@ function imageType(contentType, src) {
 async function photoProperty(data, key) {
   const src = data.photoUrl;
   const remote = /^https?:\/\//i.test(src);
+
+  // A data: URI carries its own bytes — nothing to fetch or read off disk. SVG
+  // is the one format address books tend to refuse, so it is left out of the
+  // contact file without a warning; the card page still shows it.
+  if (/^data:/i.test(src)) {
+    const comma = src.indexOf(',');
+    if (comma === -1) return null;
+    const meta = src.slice('data:'.length, comma);
+    const type = imageType(meta.split(';')[0], '');
+    if (!type) return null;
+    const body = src.slice(comma + 1);
+    const buffer = meta.includes('base64')
+      ? Buffer.from(body, 'base64')
+      : Buffer.from(decodeURIComponent(body), 'utf8');
+    if (buffer.length > PHOTO_MAX_BYTES) {
+      console.warn(`  photo not embedded (${Math.round(buffer.length / 1024)} KB exceeds the ${PHOTO_MAX_BYTES / 1024} KB embed limit) — skipping it`);
+      return null;
+    }
+    return `PHOTO;ENCODING=b;TYPE=${type}:${buffer.toString('base64')}`;
+  }
+
   try {
     let buffer;
     let type;
@@ -254,11 +279,25 @@ function render(template, data) {
 
 async function main() {
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
-  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
+  const cards = fs.existsSync(DATA_DIR)
+    ? fs
+        .readdirSync(DATA_DIR)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => ({ key: path.basename(f, '.json'), file: path.join(DATA_DIR, f) }))
+    : [];
 
-  for (const file of files) {
-    const key = path.basename(file, '.json');
-    const data = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
+  // An empty or missing data/ is a first run, not an error: render the bundled
+  // example so there is a real card to look at, and say how to replace it.
+  if (!cards.length && fs.existsSync(EXAMPLE_PATH)) {
+    cards.push({ key: EXAMPLE_KEY, file: EXAMPLE_PATH });
+    console.log('no data/*.json found — building the bundled example card');
+    console.log(`put your own <name>.json in data/ and restart to replace dist/${EXAMPLE_KEY}/`);
+  } else if (!cards.length) {
+    console.log('no data/*.json found and no bundled example.json — nothing to build');
+  }
+
+  for (const { key, file } of cards) {
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
     const html = render(template, data);
     const outDir = path.join(DIST_DIR, key);
     fs.mkdirSync(outDir, { recursive: true });
