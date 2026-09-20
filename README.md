@@ -161,8 +161,10 @@ A few things worth knowing:
   `- ./dist:/app/dist` to the volumes if you want them on your side.
 - **The server sends `contact.vcf` as `text/vcard`**, which is what makes phones
   offer to save the contact instead of showing the file as text.
-- Image tags are `latest`, the version (`1.1.0`), the minor line (`1.1`) and the
-  commit SHA. Pin one in `compose.yaml` if you'd rather not track `latest`.
+- **Only releases publish an image**, so `latest` always points at a released
+  version — pushes to `main` never move it. Alongside it each release pushes the
+  version (`1.1.2`), the minor line (`1.1`) and the commit SHA; pin one of those
+  in `compose.yaml` to stay on a version you chose.
 
 ### A real domain
 
@@ -496,11 +498,13 @@ burden — an unparseable subject still shows up, under **Other**, and `!` or a
 `BREAKING CHANGE:` footer promotes an entry to a **Breaking changes** block at the
 top of its release.
 
-`.github/workflows/docker.yml` builds the image on every push to `main` and every
-`v*` tag, smoke-tests it against the example card, and pushes it to GHCR tagged
-`latest`, the version, and the commit SHA. Pull requests build and test without
-pushing. If you fork this and push your own image, note that GHCR creates the
-package **private** — flip it to Public once in the repo's package settings.
+`.github/workflows/docker.yml` publishes the image, and a `v*` tag is the only
+thing that makes it publish: it builds, smoke-tests the result against the
+example card, and pushes it to GHCR tagged `latest`, the version, the minor line
+and the commit SHA. Pull requests touching the image files — and manual runs —
+build and smoke-test without pushing anything, so a push to `main` leaves the
+registry alone. If you fork this and push your own image, note that GHCR creates
+the package **private** — flip it to Public once in the repo's package settings.
 
 ---
 
