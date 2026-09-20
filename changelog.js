@@ -86,19 +86,26 @@ function parseSubject(commit) {
   };
 }
 
+// Release plumbing: these describe the changelog rather than the project. The
+// tag usually sits on the release commit, so they are filtered out of the
+// entries but still open their release — see below.
+const PLUMBING = /^chore\((changelog|release)\):/;
+
 // Newest first: a tagged commit closes the section above it and opens its own.
 function groupByRelease(commits) {
   const releases = [{ version: UNRELEASED, date: null, entries: [] }];
 
   for (const commit of commits) {
-    // The changelog job's own commits would only ever describe themselves.
-    if (commit.subject.startsWith('chore(changelog):')) continue;
-
+    // Open the release before dropping anything, or a tag sitting on a
+    // plumbing commit would take its whole section down with it.
     if (commit.tag) releases.push({ version: commit.tag, date: commit.date, entries: [] });
+    if (PLUMBING.test(commit.subject)) continue;
     releases[releases.length - 1].entries.push({ ...commit, ...parseSubject(commit) });
   }
 
-  return releases.filter((r) => r.entries.length > 0);
+  // A release with nothing but plumbing in it still happened; only an empty
+  // Unreleased section is worth hiding.
+  return releases.filter((r) => r.entries.length > 0 || r.version !== UNRELEASED);
 }
 
 function renderEntry(entry, url) {

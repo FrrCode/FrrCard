@@ -375,8 +375,20 @@ lands in **Unreleased**.
 ```bash
 just changelog        # rewrite CHANGELOG.md
 just changelog-check  # exit 1 if it is behind the history
-just release v1.1.0   # tag and push; the workflow folds the tag in
+just release v1.1.0   # cut a release
 ```
+
+`just release` is the whole ceremony: it refuses anything but a clean `main` and
+an unused semver tag, writes the version into `package.json`, commits that as
+`chore(release): v1.1.0`, tags it, and pushes the branch and the tag. CI takes it
+from there — the image goes to GHCR under `1.1.0`, `1.1` and `latest`, and the
+changelog workflow folds everything that was under **Unreleased** into a
+`## [v1.1.0]` section with a compare link and commits it back to `main`. Pull
+afterwards, since that commit lands on top of yours.
+
+Release commits describe the release rather than the project, so `changelog.js`
+leaves them out of the entries — while still letting the tag on one open its
+section.
 
 `.github/workflows/changelog.yml` does it for you: every push to `main` and every
 `v*` tag regenerates the file and commits it back to `main` if it changed. Writing
