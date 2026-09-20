@@ -125,6 +125,7 @@ to turn a bare value into the right kind of href.
 |---|---|---|---|
 | `website` | Personal Website | full URL | the URL |
 | `company` | Company Website | full URL | the URL |
+| `cv` | CV | full URL to a PDF or page | the URL |
 | `schedule` | Schedule Meeting | full URL | the URL (Calendly, Cal.com, …) |
 | `linkedin` | LinkedIn | full profile URL | the URL |
 | `email` | Email | address | `mailto:` |
@@ -142,7 +143,7 @@ file.
 ## The contact file
 
 Alongside `index.html`, each card gets a `dist/<name>/contact.vcf` built from the
-same JSON, and a blue **Save Contact** button at the top of the links that points
+same JSON, and a **Save Contact** button at the top of the links that points
 at it. Tapping it on a phone opens the OS "add contact" sheet with everything
 already filled in — the fastest way to end up in someone's address book after a
 handshake.
@@ -156,7 +157,7 @@ It is vCard 3.0, the dialect iOS Contacts, Android and Outlook all read:
 | `organization` | `ORG` |
 | `email` links | `EMAIL;TYPE=INTERNET` |
 | `phone` links | `TEL;TYPE=CELL,VOICE` |
-| `website`, `company`, `schedule` links | `URL` |
+| `website`, `company`, `cv`, `schedule` links | `URL` |
 | `linkedin`, `whatsapp`, `telegram`, `instagram` links | `X-SOCIALPROFILE` |
 | `photoUrl` | `PHOTO`, base64-embedded |
 | `domain` | `SOURCE` |
