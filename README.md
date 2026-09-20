@@ -1,13 +1,13 @@
 # FrrCard
 
 **A self-hosted digital business card.** One JSON file per person in, one static
-page out — photo, tap-to-act contact links, and a QR code that points back at
-the card's own URL.
+page out — photo, tap-to-act contact links, a downloadable contact file, and a
+QR code that points back at the card's own URL.
 
 No database, no tracking, no build toolchain, no third-party service holding your
-contact details hostage. The build script is ~130 lines of plain Node with zero
-runtime dependencies, and the output is a folder of `index.html` files you can
-drop on any static host.
+contact details hostage. The build script is a few hundred lines of plain Node
+with zero runtime dependencies, and the output is a folder of `index.html` and
+`contact.vcf` files you can drop on any static host.
 
 Built by [frrcode.com](https://frrcode.com). Free to use, fork, and self-host —
 just not to resell ([license](#license)).
@@ -38,6 +38,9 @@ substance, a single HTML page. FrrCard is that page:
 - **Native-feeling.** System font stack, automatic light/dark mode, `mailto:` /
   `tel:` / `wa.me` links that open the right app on a phone.
 - **Shareable in person.** A built-in QR code and a one-tap copy-link button.
+- **Saveable.** A **Save Contact** button hands over a `.vcf` — photo and all —
+  that drops straight into iOS Contacts, Android, Outlook or anything else that
+  reads vCard.
 
 ## Requirements
 
@@ -58,6 +61,7 @@ $EDITOR data/jane.json
 # 2. Build
 node build.js
 # built dist/jane/index.html (jane.example.com)
+# built dist/jane/contact.vcf (Jane Doe)
 
 # 3. Look at it
 pnpm install && pnpm exec serve dist/jane
@@ -102,6 +106,9 @@ output folder name and nothing else — pick whatever you like.
 | `links` | ✅ | The buttons, rendered top to bottom in the order you list them |
 | `qrTarget` | — | Override what the QR code encodes. Defaults to `https://<domain>/` |
 | `credit` | — | `false` hides the "Built with FrrCard" footer link. Shown by default |
+| `organization` | — | `ORG` in the contact file. Not shown on the card |
+| `vcard` | — | `false` drops the Save Contact button and the `.vcf`. On by default |
+| `vcardLabel` | — | Text on the Save Contact button. Defaults to `Save Contact` |
 
 Every field marked required is used somewhere in the page, and the build does not
 check for you — leave one out and the word `undefined` shows up in the rendered
@@ -127,7 +134,47 @@ to turn a bare value into the right kind of href.
 
 An unrecognised `type` stops the build with `Unknown link type: "..."`. To add
 your own, drop an entry into the `ICONS` map at the top of `build.js` — an SVG,
-a default label, an `href` function, and whether it opens in a new tab.
+a default label, an `href` function, whether it opens in a new tab, and
+optionally a `vcard` function returning the property it becomes in the contact
+file.
+
+## The contact file
+
+Alongside `index.html`, each card gets a `dist/<name>/contact.vcf` built from the
+same JSON, and a blue **Save Contact** button at the top of the links that points
+at it. Tapping it on a phone opens the OS "add contact" sheet with everything
+already filled in — the fastest way to end up in someone's address book after a
+handshake.
+
+It is vCard 3.0, the dialect iOS Contacts, Android and Outlook all read:
+
+| From the data file | Becomes |
+|---|---|
+| `firstName`, `lastName`, `name` | `N` and `FN` |
+| `jobTitle` | `TITLE` |
+| `organization` | `ORG` |
+| `email` links | `EMAIL;TYPE=INTERNET` |
+| `phone` links | `TEL;TYPE=CELL,VOICE` |
+| `website`, `company`, `schedule` links | `URL` |
+| `linkedin`, `whatsapp`, `telegram`, `instagram` links | `X-SOCIALPROFILE` |
+| `photoUrl` | `PHOTO`, base64-embedded |
+| `domain` | `SOURCE` |
+
+Each property is written in a labelled group (`item1.URL` + `item1.X-ABLabel`), so
+the label you gave a link on the card — `"Book a studio visit"` and all — is the
+label that shows up in Contacts.
+
+**The photo is inlined.** The build reads it from `public/<name>/` or fetches the
+remote URL once and embeds the bytes, so the saved contact keeps its picture
+offline. If the image can't be read, is over 512 KB, or isn't a JPEG/PNG/GIF/WebP,
+the build prints a note and falls back to a plain URL reference (or, for a local
+file it couldn't read, no photo at all) — it never fails the build over a photo.
+
+The button deliberately carries no `download` attribute: on iOS and Android that
+makes the browser hand the file to the Contacts app instead of parking it in
+Downloads. Add `download` in `build.js` if you prefer a plain file save.
+
+Set `"vcard": false` to skip the button and the file entirely.
 
 ### The credit link
 
@@ -188,14 +235,32 @@ server {
 GitHub Pages, Netlify, Cloudflare Pages, S3 and every other static host work just
 as well — `dist/` is the whole artifact.
 
+One thing worth checking: your host should send `contact.vcf` as `text/vcard` (or
+`text/x-vcard`). Most already do. If yours falls back to `text/plain`, browsers
+render the file as text instead of offering to save the contact — pin it
+explicitly:
+
+```caddyfile
+# Caddy
+header /contact.vcf Content-Type "text/vcard; charset=utf-8"
+```
+
+```nginx
+# nginx
+location = /contact.vcf { default_type text/vcard; }
+```
+
 ## What's in git, and what isn't
 
 The repository tracks the machinery; your content stays on your machine.
 
 ```
 build.js         ✅  the renderer
+changelog.js     ✅  the CHANGELOG.md generator
 template.html    ✅  markup, CSS, copy-button script
-justfile         ✅  build + deploy recipes
+justfile         ✅  build, deploy, changelog + release recipes
+.github/         ✅  the changelog workflow
+CHANGELOG.md     ✅  generated, committed
 data/            ✅  folder tracked, contents ignored
 public/<name>/   ✅  folder tracked, contents ignored
 dist/            ❌  build output
@@ -217,11 +282,33 @@ so edit it like any static page.
 
 Available tokens: `{{NAME}}`, `{{FIRST_NAME}}`, `{{LAST_NAME}}`, `{{JOB_TITLE}}`,
 `{{DESCRIPTION}}`, `{{PHOTO_URL}}`, `{{FAVICON_URL}}`, `{{CANONICAL_URL}}`,
-`{{OG_IMAGE}}`, `{{QR_IMAGE}}`, `{{QR_LABEL}}`, `{{LINKS}}`, `{{CREDIT}}`.
+`{{OG_IMAGE}}`, `{{QR_IMAGE}}`, `{{QR_LABEL}}`, `{{VCARD}}`, `{{LINKS}}`,
+`{{CREDIT}}`.
 
 Colors live in the `:root` block at the top of the `<style>` tag, with a
 `prefers-color-scheme: dark` override right below it. Referencing a token that
 doesn't exist fails the build instead of rendering a literal `{{TYPO}}`.
+
+## Changelog
+
+[CHANGELOG.md](CHANGELOG.md) is generated, never hand-edited. `changelog.js` reads
+the git history, parses each subject as a
+[Conventional Commit](https://www.conventionalcommits.org/) (`type(scope)!: subject`),
+and groups the entries under the tag they shipped in — anything past the newest tag
+lands in **Unreleased**.
+
+```bash
+just changelog        # rewrite CHANGELOG.md
+just changelog-check  # exit 1 if it is behind the history
+just release v1.1.0   # tag and push; the workflow folds the tag in
+```
+
+`.github/workflows/changelog.yml` does it for you: every push to `main` and every
+`v*` tag regenerates the file and commits it back to `main` if it changed. Writing
+`feat: …` / `fix: …` / `docs: …` commit messages is the whole of the maintenance
+burden — an unparseable subject still shows up, under **Other**, and `!` or a
+`BREAKING CHANGE:` footer promotes an entry to a **Breaking changes** block at the
+top of its release.
 
 ## Notes
 
@@ -231,8 +318,11 @@ doesn't exist fails the build instead of rendering a literal `{{TYPO}}`.
   `build.js`.
 - **`--delete` is real.** `just deploy` mirrors `dist/` onto the target directory
   and removes anything else there. Give the cards their own directory.
+- **A remote `photoUrl` is fetched at build time** so it can be embedded in the
+  `.vcf`. It is the only network call the build makes, it has an 8-second timeout,
+  and failing it only costs you the photo in the contact file.
 - The build is not incremental: it re-renders every card every time. At this size
-  that takes milliseconds.
+  that takes milliseconds — plus one photo fetch per card with a remote photo.
 
 ## License
 
