@@ -6,6 +6,12 @@ Generated from the git history by `node changelog.js` — edit the commit
 messages, not this file. Entries come from [Conventional Commits](https://www.conventionalcommits.org/)
 subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased](https://github.com/FrrCode/FrrCard/compare/v1.1.2...HEAD)
+
+### CI
+
+- **docker:** publish the image only for a release tag ([`9986231`](https://github.com/FrrCode/FrrCard/commit/99862312e774dd79305654f9332f980bc222c373))
+
 ## [v1.1.2](https://github.com/FrrCode/FrrCard/compare/v1.1.1...v1.1.2) — 2026-09-20
 
 
