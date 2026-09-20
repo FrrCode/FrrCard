@@ -6,6 +6,9 @@ Generated from the git history by `node changelog.js` — edit the commit
 messages, not this file. Entries come from [Conventional Commits](https://www.conventionalcommits.org/)
 subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v1.1.2](https://github.com/FrrCode/FrrCard/compare/v1.1.1...v1.1.2) — 2026-09-20
+
+
 ## [v1.1.1](https://github.com/FrrCode/FrrCard/compare/v1.1.0...v1.1.1) — 2026-09-20
 
 ### Features
