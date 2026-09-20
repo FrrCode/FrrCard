@@ -4,10 +4,12 @@
 page out — photo, tap-to-act contact links, a downloadable contact file, and a
 QR code that points back at the card's own URL.
 
-No database, no tracking, no build toolchain, no third-party service holding your
-contact details hostage. The build script is a few hundred lines of plain Node
-with zero runtime dependencies, and the output is a folder of `index.html` and
-`contact.vcf` files you can drop on any static host.
+No database, no tracking, no third-party service holding your contact details
+hostage. It runs as a single container: drop your JSON in `data/`, `docker
+compose up`, and the card is live. The renderer underneath is a few hundred
+lines of plain Node with zero runtime dependencies, and what it produces is a
+folder of `index.html` and `contact.vcf` files you can also serve from any
+static host.
 
 Built by [frrcode.com](https://frrcode.com). Free to use, fork, and self-host —
 just not to resell ([license](#license)).
@@ -34,7 +36,7 @@ substance, a single HTML page. FrrCard is that page:
 - **Fast.** One self-contained HTML file per card. No JS framework, no web fonts,
   no network calls beyond the QR image.
 - **Multi-person.** Drop in a second JSON file and you have a second card — one
-  repo can serve a whole family or team.
+  container can serve a whole family or team.
 - **Native-feeling.** System font stack, automatic light/dark mode, `mailto:` /
   `tel:` / `wa.me` links that open the right app on a phone.
 - **Shareable in person.** A built-in QR code and a one-tap copy-link button.
@@ -42,39 +44,155 @@ substance, a single HTML page. FrrCard is that page:
   that drops straight into iOS Contacts, Android, Outlook or anything else that
   reads vCard.
 
-## Requirements
-
-- Node.js 18 or newer (only for the build — the output is static)
-- Optionally [`just`](https://github.com/casey/just) for the build/deploy recipes
-  and `rsync` for deploying
-- …or nothing but Docker, if you run the [prebuilt image](#docker)
-
 ## Quick start
 
+You need Docker with the Compose plugin. Nothing else — no Node, no checkout.
+
 ```bash
-git clone git@github.com:petr-nazarov/card.git frrcard
-cd frrcard
-
-# 1. Describe yourself
-cp data/example.json.sample data/jane.json   # or write one from scratch — schema below
-$EDITOR data/jane.json
-
-# 2. Build
-node build.js
-# built dist/jane/index.html (jane.example.com)
-# built dist/jane/contact.vcf (Jane Doe)
-
-# 3. Look at it
-node serve.js dist/jane          # http://localhost:8080
+mkdir frrcard && cd frrcard
+mkdir -p data public
+curl -O https://raw.githubusercontent.com/FrrCode/FrrCard/main/compose.yaml
+docker compose up -d
 ```
 
-Everything under `dist/jane/` is the finished card. Upload it anywhere that
-serves static files.
+Open **http://localhost:8080**. With `data/` still empty the container renders
+the bundled example card and redirects `/` to it, so the first run shows a
+working card rather than a 404. The log says as much:
+
+```
+no data/*.json found — building the bundled example card
+put your own <name>.json in data/ and restart to replace dist/example/
+```
+
+That `compose.yaml` is the whole configuration — image, port, and the two
+folders it reads:
+
+```yaml
+services:
+  frrcard:
+    image: ghcr.io/frrcode/frrcard:latest
+    # Swap the image line for this to build from a checkout instead:
+    # build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Serve a single card at / instead of every card at /<name>/:
+      # CARD: jane
+      PORT: 8080
+    volumes:
+      - ./data:/app/data:ro
+      - ./public:/app/public:ro
+```
+
+The image (**`ghcr.io/frrcode/frrcard`**, amd64 and arm64) holds the renderer, a
+small static server and that one demo card — nobody's real card data is baked
+in. On start it renders whatever JSON it finds in the mounted `data/` and serves
+the result.
+
+### Your own card
+
+Write one JSON file per person into `data/`. Start from the template:
+
+```bash
+curl -o data/jane.json https://raw.githubusercontent.com/FrrCode/FrrCard/main/data/example.json.sample
+$EDITOR data/jane.json          # the fields are documented below
+docker compose up -d --force-recreate
+```
+
+As soon as `data/` holds one `*.json`, only your cards are built. Each is served
+under its own path: `data/jane.json` becomes **http://localhost:8080/jane/**,
+with its contact file at `/jane/contact.vcf`.
+
+For a photo, drop the image into `public/<name>/` — `public/jane/jane.jpg` is
+reachable from the card as `"photoUrl": "./jane.jpg"`. A remote URL works too.
+
+Cards render at container start, so **every edit to a data file needs a
+restart**. The build takes milliseconds:
+
+```bash
+docker compose restart                  # re-render after an edit
+docker compose up -d --force-recreate   # …and forget what the last run built
+```
+
+The difference matters once: a restarted container keeps the `dist/` it rendered
+before, so the demo card — and any card whose JSON you later rename or delete —
+stays reachable until the container is recreated. `--force-recreate` starts from
+an empty `dist/`.
+
+### Configuration
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PORT` | `8080` | Port inside the container |
+| `HOST` | `0.0.0.0` | Interface to bind |
+| `CARD` | — | Serve `dist/<CARD>` at `/` instead of every card under `/<name>/` |
+
+To put a single card at the root rather than under its own path, uncomment the
+`CARD` line:
+
+```yaml
+    environment:
+      CARD: jane
+      PORT: 8080
+```
+
+`PORT` is the port *inside* the container, so changing it means changing the
+right-hand side of the `ports:` mapping too.
+
+Day-to-day:
+
+```bash
+docker compose up -d        # render the cards and serve them
+docker compose restart      # re-render after editing a data file
+docker compose logs -f      # the build output lands here
+docker compose down         # stop and remove the container
+docker compose pull && docker compose up -d   # update to a newer image
+```
+
+A few things worth knowing:
+
+- **`/` returns 404 when serving several cards.** There is no index listing who
+  lives on the box — reach a card by its own path, or use `CARD`. The one
+  exception is the first run described above, where `/` redirects to `/example/`.
+- **`/healthz`** answers `ok`; the image's `HEALTHCHECK` uses it.
+- **Nothing is written to the host.** `data/` and `public/` are mounted
+  read-only and the rendered files stay inside the container. Add
+  `- ./dist:/app/dist` to the volumes if you want them on your side.
+- **The server sends `contact.vcf` as `text/vcard`**, which is what makes phones
+  offer to save the contact instead of showing the file as text.
+- Image tags are `latest`, the version (`1.1.0`), the minor line (`1.1`) and the
+  commit SHA. Pin one in `compose.yaml` if you'd rather not track `latest`.
+
+### A real domain
+
+Put a reverse proxy in front for TLS. One subdomain per card off a single
+container, with Caddy:
+
+```caddyfile
+jane.example.com {
+    rewrite * /jane{uri}
+    reverse_proxy localhost:8080
+}
+```
+
+…or run one container per card with `CARD` set and skip the rewrite:
+
+```nginx
+server {
+    server_name jane.example.com;
+    location / { proxy_pass http://127.0.0.1:8080; }
+}
+```
+
+Whichever you pick, the `domain` field in the data file should match the public
+URL — it drives the canonical link and the QR code, and the container has no way
+to know what's in front of it.
 
 ## The data file
 
-Each `data/<name>.json` produces `dist/<name>/index.html`. The file name is the
-output folder name and nothing else — pick whatever you like.
+Each `data/<name>.json` produces the card at `/<name>/`. The file name is the
+path and nothing else — pick whatever you like.
 
 ```json
 {
@@ -113,7 +231,8 @@ output folder name and nothing else — pick whatever you like.
 
 Every field marked required is used somewhere in the page, and the build does not
 check for you — leave one out and the word `undefined` shows up in the rendered
-card (or, for `links`, the build crashes). Fill them all in.
+card (or, for `links`, the build fails and the container logs say so). Fill them
+all in.
 
 ### Link types
 
@@ -134,19 +253,25 @@ to turn a bare value into the right kind of href.
 | `telegram` | Telegram | `@handle`, `handle`, or full URL | `https://t.me/handle` |
 | `instagram` | Instagram | `@handle`, `handle`, or full URL | `https://www.instagram.com/handle` |
 
-An unrecognised `type` stops the build with `Unknown link type: "..."`. To add
-your own, drop an entry into the `ICONS` map at the top of `build.js` — an SVG,
-a default label, an `href` function, whether it opens in a new tab, and
-optionally a `vcard` function returning the property it becomes in the contact
-file.
+An unrecognised `type` stops the build with `Unknown link type: "..."`. Adding
+your own means editing `build.js`, which is a [development](#development) job:
+an entry in the `ICONS` map at the top of the file — an SVG, a default label, an
+`href` function, whether it opens in a new tab, and optionally a `vcard`
+function returning the property it becomes in the contact file.
+
+### Photos and other assets
+
+Anything in `public/<name>/` is copied next to that card's generated
+`index.html`. So `public/jane/jane.jpg` is reachable from `data/jane.json` as
+`"photoUrl": "./jane.jpg"` — no CDN, no hotlinking. Create the folder yourself;
+if it doesn't exist, the build simply skips the copy.
 
 ## The contact file
 
-Alongside `index.html`, each card gets a `dist/<name>/contact.vcf` built from the
-same JSON, and a **Save Contact** button at the top of the links that points
-at it. Tapping it on a phone opens the OS "add contact" sheet with everything
-already filled in — the fastest way to end up in someone's address book after a
-handshake.
+Alongside the page, each card gets a `contact.vcf` built from the same JSON, and
+a **Save Contact** button at the top of the links that points at it. Tapping it
+on a phone opens the OS "add contact" sheet with everything already filled in —
+the fastest way to end up in someone's address book after a handshake.
 
 It is vCard 3.0, the dialect iOS Contacts, Android and Outlook all read:
 
@@ -174,7 +299,7 @@ file it couldn't read, no photo at all) — it never fails the build over a phot
 
 The button deliberately carries no `download` attribute: on iOS and Android that
 makes the browser hand the file to the Contacts app instead of parking it in
-Downloads. Add `download` in `build.js` if you prefer a plain file save.
+Downloads.
 
 Set `"vcard": false` to skip the button and the file entirely.
 
@@ -196,153 +321,48 @@ Turning it off is one line in the card's data file, no strings attached:
 Only the literal `false` hides it; any other value (or no `credit` key at all)
 leaves the link in place.
 
-### Images and other assets
+## Notes
 
-Anything in `public/<name>/` is copied into `dist/<name>/` next to the generated
-`index.html`. So `public/jane/jane.jpg` is reachable from the card as
-`"photoUrl": "./jane.jpg"` — no CDN, no hotlinking. Create the folder for a new
-card yourself; if it doesn't exist, the build simply skips the copy.
+- **The QR code is fetched from `api.qrserver.com`** at page load — the one
+  outside service the card touches. If you want it fully self-contained, generate
+  the PNG yourself, drop it in `public/<name>/`, and point `QR_IMAGE` at it in
+  `build.js`.
+- **A remote `photoUrl` is fetched at build time** so it can be embedded in the
+  `.vcf`. It is the only network call the build makes, it has an 8-second timeout,
+  and failing it only costs you the photo in the contact file.
+- The build is not incremental: it re-renders every card on every start. At this
+  size that takes milliseconds — plus one photo fetch per card with a remote photo.
 
-## Deploying
+---
 
-```bash
-just build                        # node build.js
-just deploy                       # build, then rsync dist/ to the server
-DEPLOY_HOST=my-server just deploy # override the target host (default: frrcode)
-```
+# Development
 
-`just deploy` runs `rsync -avz --delete dist/ <host>:deployments/card`. Point the
-recipe at wherever your web root lives.
-
-The cards are plain static folders, so serving them is a few lines. One subdomain
-per card, with Caddy:
-
-```caddyfile
-jane.example.com {
-    root * /home/you/deployments/card/jane
-    file_server
-}
-```
-
-…or as paths on a single domain, with nginx:
-
-```nginx
-server {
-    server_name example.com;
-    root /home/you/deployments/card;
-    location / { try_files $uri $uri/ $uri/index.html =404; }
-}
-```
-
-GitHub Pages, Netlify, Cloudflare Pages, S3 and every other static host work just
-as well — `dist/` is the whole artifact.
-
-One thing worth checking: your host should send `contact.vcf` as `text/vcard` (or
-`text/x-vcard`). Most already do. If yours falls back to `text/plain`, browsers
-render the file as text instead of offering to save the contact — pin it
-explicitly:
-
-```caddyfile
-# Caddy
-header /contact.vcf Content-Type "text/vcard; charset=utf-8"
-```
-
-```nginx
-# nginx
-location = /contact.vcf { default_type text/vcard; }
-```
-
-## Docker
-
-A prebuilt image lives at **`ghcr.io/frrcode/frrcard`** (amd64 and arm64). It
-holds the renderer, a small static server and one demo card — nobody's real card
-data is baked in. On start it renders whatever JSON it finds in the mounted
-`data/` and serves the result.
-
-The repo ships a `compose.yaml`:
-
-```yaml
-services:
-  frrcard:
-    image: ghcr.io/frrcode/frrcard:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./data:/app/data:ro
-      - ./public:/app/public:ro
-```
+Everything above needs only the published image. Clone the repo when you want to
+change the renderer or the template, or to build the cards yourself and host the
+output somewhere static.
 
 ```bash
-docker compose up -d        # render the cards and serve them
-docker compose restart      # re-render after editing a data file
-docker compose logs -f      # the build output lands here
+git clone git@github.com:FrrCode/FrrCard.git frrcard
+cd frrcard
+
+cp data/example.json.sample data/jane.json
+$EDITOR data/jane.json
+
+node build.js                    # built dist/jane/index.html (jane.example.com)
+                                 # built dist/jane/contact.vcf (Jane Doe)
+node serve.js dist/jane          # http://localhost:8080
 ```
 
-**The first run needs no data file.** With `data/` empty — or not mounted at all
-— the container renders the bundled demo card, serves it at `/example/` and
-redirects `/` to it, so `http://localhost:8080` shows a working card straight
-away. The log says as much:
+Requirements: Node.js 18 or newer (only for the build — the output is static),
+optionally [`just`](https://github.com/casey/just) for the recipes and `rsync`
+for deploying.
 
-```
-no data/*.json found — building the bundled example card
-put your own <name>.json in data/ and restart to replace dist/example/
-```
+`serve.js` is the same server the image runs: `node serve.js` serves all of
+`dist/` with cards at `/<name>/`, `CARD=jane` or a path argument serves one card
+at `/`.
 
-Do that and the demo is gone: as soon as `data/` holds a single `*.json`, only
-your cards are built. Start from the template if you like —
-
-```bash
-cp data/example.json.sample data/jane.json   # then edit it
-docker compose restart
-```
-
-Every card is served under its own path: `data/jane.json` becomes
-`http://localhost:8080/jane/`, with its contact file at `/jane/contact.vcf`. To
-put a single card at the root instead, name it:
-
-```yaml
-    environment:
-      CARD: jane
-```
-
-| Variable | Default | What it does |
-|---|---|---|
-| `PORT` | `8080` | Port inside the container |
-| `HOST` | `0.0.0.0` | Interface to bind |
-| `CARD` | — | Serve `dist/<CARD>` at `/` instead of every card under `/<name>/` |
-
-A few things worth knowing:
-
-- **Cards render at startup**, so editing a data file means `docker compose
-  restart`. The build takes milliseconds.
-- **`/` returns 404 when serving several cards.** There is no index listing who
-  lives on the box — reach a card by its own path, or use `CARD`. The one
-  exception is the first run described above, where `/` redirects to
-  `/example/`.
-- **`/healthz`** answers `ok`; the image's `HEALTHCHECK` uses it.
-- **Nothing is written to the host.** Add `- ./dist:/app/dist` to the volumes if
-  you want the rendered files back on your side.
-- **Build it yourself** with `docker compose build` after swapping `image:` for
-  `build: .`, or `docker build -t frrcard .`.
-
-Put a reverse proxy in front for real domains and TLS. One subdomain per card off
-a single container, with Caddy:
-
-```caddyfile
-jane.example.com {
-    rewrite * /jane{uri}
-    reverse_proxy localhost:8080
-}
-```
-
-…or run one container per card with `CARD` set and skip the rewrite.
-
-`.github/workflows/docker.yml` builds the image on every push to `main` and every
-`v*` tag, smoke-tests it against the example card, and pushes it to GHCR tagged
-`latest`, the version, and the commit SHA. Pull requests build and test without
-pushing. If you fork this and push your own image, note that GHCR creates the
-package **private** — flip it to Public once in the repo's package settings.
+Build the image from the checkout with `docker compose build` after swapping
+`image:` for `build: .`, or `docker build -t frrcard .`.
 
 ## What's in git, and what isn't
 
@@ -365,12 +385,8 @@ dist/            ❌  build output
 ```
 
 Personal cards are never committed, so you can fork this publicly and push
-freely without leaking a phone number. The content reaches production through
-`just deploy`, which ships the rendered `dist/` — the JSON never goes anywhere
-except your own server.
-
-Keep your `data/` and `public/` files backed up somewhere; git isn't doing it
-for you any more.
+freely without leaking a phone number. Keep your `data/` and `public/` files
+backed up somewhere; git isn't doing it for you.
 
 ## Customizing the look
 
@@ -387,7 +403,57 @@ Colors live in the `:root` block at the top of the `<style>` tag, with a
 `prefers-color-scheme: dark` override right below it. Referencing a token that
 doesn't exist fails the build instead of rendering a literal `{{TYPO}}`.
 
-## Changelog
+## Serving the built files instead of the container
+
+`dist/` is the whole artifact — GitHub Pages, Netlify, Cloudflare Pages, S3 and
+every other static host take it as-is.
+
+```bash
+just build                        # node build.js
+just deploy                       # build, then rsync dist/ to the server
+DEPLOY_HOST=my-server just deploy # override the target host (default: frrcode)
+```
+
+`just deploy` runs `rsync -avz --delete dist/ <host>:deployments/card`. **`--delete`
+is real** — it mirrors `dist/` onto the target directory and removes anything
+else there, so give the cards their own directory. Point the recipe at wherever
+your web root lives.
+
+One subdomain per card, with Caddy:
+
+```caddyfile
+jane.example.com {
+    root * /home/you/deployments/card/jane
+    file_server
+}
+```
+
+…or as paths on a single domain, with nginx:
+
+```nginx
+server {
+    server_name example.com;
+    root /home/you/deployments/card;
+    location / { try_files $uri $uri/ $uri/index.html =404; }
+}
+```
+
+One thing worth checking: your host should send `contact.vcf` as `text/vcard` (or
+`text/x-vcard`). Most already do — the bundled `serve.js` does. If yours falls
+back to `text/plain`, browsers render the file as text instead of offering to
+save the contact, so pin it explicitly:
+
+```caddyfile
+# Caddy
+header /contact.vcf Content-Type "text/vcard; charset=utf-8"
+```
+
+```nginx
+# nginx
+location = /contact.vcf { default_type text/vcard; }
+```
+
+## Releases and the changelog
 
 [CHANGELOG.md](CHANGELOG.md) is generated, never hand-edited. `changelog.js` reads
 the git history, parses each subject as a
@@ -398,16 +464,17 @@ lands in **Unreleased**.
 ```bash
 just changelog        # rewrite CHANGELOG.md
 just changelog-check  # exit 1 if it is behind the history
-just release v1.1.0   # cut a release
+just release          # cut a patch release (or: just release minor / major)
 ```
 
-`just release` is the whole ceremony: it refuses anything but a clean `main` and
-an unused semver tag, writes the version into `package.json`, commits that as
-`chore(release): v1.1.0`, tags it, and pushes the branch and the tag. CI takes it
+`just release` is the whole ceremony: it works out the next version from
+`package.json` for the bump level you asked for, refuses anything but a clean
+`main` and an unused semver tag, writes the version back, commits it as
+`chore(release): v1.1.1`, tags it, and pushes the branch and the tag. CI takes it
 from there:
 
-- the image goes to GHCR under `1.1.0`, `1.1` and `latest`;
-- everything that was under **Unreleased** moves into a `## [v1.1.0]` section
+- the image goes to GHCR under `1.1.1`, `1.1` and `latest`;
+- everything that was under **Unreleased** moves into a `## [v1.1.1]` section
   with a compare link, committed back to `main` — so pull afterwards, since that
   commit lands on top of yours;
 - the **GitHub release** is published with that section as its body, marked a
@@ -415,7 +482,7 @@ from there:
 
 That last step matters because a pushed tag is *not* a release. GitHub lists the
 tag on the releases page with an empty body until something creates one. The
-notes come from `node changelog.js --notes v1.1.0`, which reads the history
+notes come from `node changelog.js --notes v1.1.1`, which reads the history
 rather than scraping the rendered markdown back out of `CHANGELOG.md`.
 
 Release commits describe the release rather than the project, so `changelog.js`
@@ -429,21 +496,15 @@ burden — an unparseable subject still shows up, under **Other**, and `!` or a
 `BREAKING CHANGE:` footer promotes an entry to a **Breaking changes** block at the
 top of its release.
 
-## Notes
+`.github/workflows/docker.yml` builds the image on every push to `main` and every
+`v*` tag, smoke-tests it against the example card, and pushes it to GHCR tagged
+`latest`, the version, and the commit SHA. Pull requests build and test without
+pushing. If you fork this and push your own image, note that GHCR creates the
+package **private** — flip it to Public once in the repo's package settings.
 
-- **The QR code is fetched from `api.qrserver.com`** at page load — the one
-  outside service the card touches. If you want it fully self-contained, generate
-  the PNG yourself, drop it in `public/<name>/`, and point `QR_IMAGE` at it in
-  `build.js`.
-- **`--delete` is real.** `just deploy` mirrors `dist/` onto the target directory
-  and removes anything else there. Give the cards their own directory.
-- **A remote `photoUrl` is fetched at build time** so it can be embedded in the
-  `.vcf`. It is the only network call the build makes, it has an 8-second timeout,
-  and failing it only costs you the photo in the contact file.
-- The build is not incremental: it re-renders every card every time. At this size
-  that takes milliseconds — plus one photo fetch per card with a remote photo.
+---
 
-## License
+# License
 
 [ISC with the Commons Clause](LICENSE).
 
