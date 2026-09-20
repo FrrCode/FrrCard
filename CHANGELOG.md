@@ -8,6 +8,10 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ## [Unreleased](https://github.com/FrrCode/FrrCard/compare/v1.1.0...HEAD)
 
+### Features
+
+- **cards:** add a cv link type and drop the Save Contact accent ([`400f073`](https://github.com/FrrCode/FrrCard/commit/400f073523963db2cd4b0c84aed71c76c4f7a550))
+
 ### Fixes
 
 - **release:** publish a GitHub release when a tag is pushed ([`d5bb9a5`](https://github.com/FrrCode/FrrCard/commit/d5bb9a5232c4b660399034cad35e04ec22ae6f57))
