@@ -47,6 +47,7 @@ substance, a single HTML page. FrrCard is that page:
 - Node.js 18 or newer (only for the build — the output is static)
 - Optionally [`just`](https://github.com/casey/just) for the build/deploy recipes
   and `rsync` for deploying
+- …or nothing but Docker, if you run the [prebuilt image](#docker)
 
 ## Quick start
 
@@ -64,7 +65,7 @@ node build.js
 # built dist/jane/contact.vcf (Jane Doe)
 
 # 3. Look at it
-pnpm install && pnpm exec serve dist/jane
+node serve.js dist/jane          # http://localhost:8080
 ```
 
 Everything under `dist/jane/` is the finished card. Upload it anywhere that
@@ -250,16 +251,90 @@ header /contact.vcf Content-Type "text/vcard; charset=utf-8"
 location = /contact.vcf { default_type text/vcard; }
 ```
 
+## Docker
+
+A prebuilt image lives at **`ghcr.io/frrcode/frrcard`** (amd64 and arm64). It
+holds the renderer and a small static server — no card data is baked in. On start
+it renders whatever JSON it finds in the mounted `data/` and serves the result.
+
+The repo ships a `compose.yaml`:
+
+```yaml
+services:
+  frrcard:
+    image: ghcr.io/frrcode/frrcard:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data:ro
+      - ./public:/app/public:ro
+```
+
+```bash
+docker compose up -d        # render the cards and serve them
+docker compose restart      # re-render after editing a data file
+docker compose logs -f      # the build output lands here
+```
+
+Every card is served under its own path: `data/jane.json` becomes
+`http://localhost:8080/jane/`, with its contact file at `/jane/contact.vcf`. To
+put a single card at the root instead, name it:
+
+```yaml
+    environment:
+      CARD: jane
+```
+
+| Variable | Default | What it does |
+|---|---|---|
+| `PORT` | `8080` | Port inside the container |
+| `HOST` | `0.0.0.0` | Interface to bind |
+| `CARD` | — | Serve `dist/<CARD>` at `/` instead of every card under `/<name>/` |
+
+A few things worth knowing:
+
+- **Cards render at startup**, so editing a data file means `docker compose
+  restart`. The build takes milliseconds.
+- **`/` returns 404 when serving several cards.** There is no index listing who
+  lives on the box — reach a card by its own path, or use `CARD`.
+- **`/healthz`** answers `ok`; the image's `HEALTHCHECK` uses it.
+- **Nothing is written to the host.** Add `- ./dist:/app/dist` to the volumes if
+  you want the rendered files back on your side.
+- **Build it yourself** with `docker compose build` after swapping `image:` for
+  `build: .`, or `docker build -t frrcard .`.
+
+Put a reverse proxy in front for real domains and TLS. One subdomain per card off
+a single container, with Caddy:
+
+```caddyfile
+jane.example.com {
+    rewrite * /jane{uri}
+    reverse_proxy localhost:8080
+}
+```
+
+…or run one container per card with `CARD` set and skip the rewrite.
+
+`.github/workflows/docker.yml` builds the image on every push to `main` and every
+`v*` tag, smoke-tests it against the example card, and pushes it to GHCR tagged
+`latest`, the version, and the commit SHA. Pull requests build and test without
+pushing. If you fork this and push your own image, note that GHCR creates the
+package **private** — flip it to Public once in the repo's package settings.
+
 ## What's in git, and what isn't
 
 The repository tracks the machinery; your content stays on your machine.
 
 ```
 build.js         ✅  the renderer
+serve.js         ✅  the static server (local look, and the image)
 changelog.js     ✅  the CHANGELOG.md generator
 template.html    ✅  markup, CSS, copy-button script
 justfile         ✅  build, deploy, changelog + release recipes
-.github/         ✅  the changelog workflow
+Dockerfile       ✅  the image
+compose.yaml     ✅  how to run it
+.github/         ✅  the changelog and docker workflows
 CHANGELOG.md     ✅  generated, committed
 data/            ✅  folder tracked, contents ignored
 public/<name>/   ✅  folder tracked, contents ignored
