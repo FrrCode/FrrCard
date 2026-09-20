@@ -6,7 +6,7 @@ Generated from the git history by `node changelog.js` — edit the commit
 messages, not this file. Entries come from [Conventional Commits](https://www.conventionalcommits.org/)
 subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased](https://github.com/FrrCode/FrrCard/compare/v1.1.0...HEAD)
+## [v1.1.1](https://github.com/FrrCode/FrrCard/compare/v1.1.0...v1.1.1) — 2026-09-20
 
 ### Features
 
@@ -15,6 +15,7 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ### Fixes
 
+- **just:** sync main with origin before cutting a release ([`8d68909`](https://github.com/FrrCode/FrrCard/commit/8d689094d76d10048aca428838a3b1d542f5be9c))
 - **release:** publish a GitHub release when a tag is pushed ([`d5bb9a5`](https://github.com/FrrCode/FrrCard/commit/d5bb9a5232c4b660399034cad35e04ec22ae6f57))
 
 ### Documentation
