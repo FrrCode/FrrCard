@@ -16,19 +16,30 @@ changelog:
 changelog-check:
     node changelog.js --check
 
-# Bump package.json, tag and push; CI does the rest. e.g. just release v1.1.0
-release version:
+# Bump package.json, tag and push; CI does the rest. e.g. just release minor
+release bump="patch":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    number="{{version}}"
-    number="${number#v}"
-    tag="v${number}"
+    case "{{bump}}" in
+      patch|minor|major) ;;
+      *) echo "not a bump: {{bump}} (want patch, minor or major)" >&2; exit 1 ;;
+    esac
 
-    if ! [[ "$number" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-      echo "not a version: {{version}} (want 1.2.3, 1.2.3-rc.1, or the same with a leading v)" >&2
-      exit 1
-    fi
+    number="$(node -e '
+      const fs = require("fs");
+      const current = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+      const match = /^(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z.]+)?$/.exec(current);
+      if (!match) throw new Error(`package.json version is not a version: ${current}`);
+      let [, major, minor, patch, pre] = match;
+      [major, minor, patch] = [major, minor, patch].map(Number);
+      // A prerelease already carries the bump, so patch just drops the suffix.
+      if (process.argv[1] === "major") { major += 1; minor = 0; patch = 0; }
+      else if (process.argv[1] === "minor") { minor += 1; patch = 0; }
+      else if (!pre) { patch += 1; }
+      process.stdout.write(`${major}.${minor}.${patch}`);
+    ' "{{bump}}")"
+    tag="v${number}"
 
     branch="$(git rev-parse --abbrev-ref HEAD)"
     if [[ "$branch" != "main" ]]; then
