@@ -10,6 +10,7 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ### Features
 
+- **release:** bump package.json as part of just release ([`0ccfdae`](https://github.com/FrrCode/FrrCard/commit/0ccfdae351abedd536be522789534f6540ebcd6f))
 - **docker:** ship a minimal image that renders and serves the cards ([`a9f064d`](https://github.com/FrrCode/FrrCard/commit/a9f064d9bd6a3baa4c1c64f865141bdaf937c309))
 - **changelog:** generate CHANGELOG.md from the git history ([`a554cce`](https://github.com/FrrCode/FrrCard/commit/a554cce180543d6f30501a999a835e88487cbcdb))
 - **vcard:** add a downloadable contact file to every card ([`8179e52`](https://github.com/FrrCode/FrrCard/commit/8179e5217d4354c73b1617e8db4af1b8cf683872))
