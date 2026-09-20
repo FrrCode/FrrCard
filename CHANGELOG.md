@@ -10,12 +10,18 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ### Features
 
+- **docker:** ship a minimal image that renders and serves the cards ([`a9f064d`](https://github.com/FrrCode/FrrCard/commit/a9f064d9bd6a3baa4c1c64f865141bdaf937c309))
 - **changelog:** generate CHANGELOG.md from the git history ([`a554cce`](https://github.com/FrrCode/FrrCard/commit/a554cce180543d6f30501a999a835e88487cbcdb))
 - **vcard:** add a downloadable contact file to every card ([`8179e52`](https://github.com/FrrCode/FrrCard/commit/8179e5217d4354c73b1617e8db4af1b8cf683872))
 
 ### Documentation
 
+- document the Docker image and compose setup ([`3f3e31c`](https://github.com/FrrCode/FrrCard/commit/3f3e31c6957b7f119df447b3f8c802fa013cbabb))
 - cover the contact file and the changelog workflow ([`62d41f1`](https://github.com/FrrCode/FrrCard/commit/62d41f153941126f7d664a1be929d7f7433de436))
+
+### CI
+
+- **docker:** build, smoke-test and push the image to GHCR ([`dfa58f8`](https://github.com/FrrCode/FrrCard/commit/dfa58f831d0403d1f54c4d28fc2e4b73a15dc8ab))
 
 ### Chores
 
