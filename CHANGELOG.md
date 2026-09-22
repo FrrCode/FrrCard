@@ -6,6 +6,12 @@ Generated from the git history by `node changelog.js` — edit the commit
 messages, not this file. Entries come from [Conventional Commits](https://www.conventionalcommits.org/)
 subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased](https://github.com/FrrCode/FrrCard/compare/v1.1.3...HEAD)
+
+### Features
+
+- **just:** deploy the released image instead of rsyncing dist ([`4b40012`](https://github.com/FrrCode/FrrCard/commit/4b4001285ff8e82b644644e08afe83be54d10155))
+
 ## [v1.1.3](https://github.com/FrrCode/FrrCard/compare/v1.1.2...v1.1.3) — 2026-09-22
 
 ### Features
