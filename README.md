@@ -7,8 +7,8 @@ QR code that points back at the card's own URL.
 No database, no tracking, no third-party service holding your contact details
 hostage. It runs as a single container: drop your JSON in `data/`, `docker
 compose up`, and the card is live. The renderer underneath is a few hundred
-lines of plain Node with zero runtime dependencies, and what it produces is a
-folder of `index.html` and `contact.vcf` files you can also serve from any
+lines of plain Node with a single runtime dependency (a QR generator), and what
+it produces is a folder of `index.html`, `contact.vcf` and `qr.svg` files you can also serve from any
 static host.
 
 Built by [frrcode.com](https://frrcode.com). Free to use, fork, and self-host —
@@ -34,7 +34,7 @@ substance, a single HTML page. FrrCard is that page:
 
 - **Yours.** Your domain, your server, your contact data. It never leaves your box.
 - **Fast.** One self-contained HTML file per card. No JS framework, no web fonts,
-  no network calls beyond the QR image.
+  no network calls — the QR code is an SVG generated alongside the page.
 - **Multi-person.** Drop in a second JSON file and you have a second card — one
   container can serve a whole family or team.
 - **Native-feeling.** System font stack, automatic light/dark mode, `mailto:` /
@@ -325,10 +325,10 @@ leaves the link in place.
 
 ## Notes
 
-- **The QR code is fetched from `api.qrserver.com`** at page load — the one
-  outside service the card touches. If you want it fully self-contained, generate
-  the PNG yourself, drop it in `public/<name>/`, and point `QR_IMAGE` at it in
-  `build.js`.
+- **The QR code is generated at build time** into `dist/<name>/qr.svg`, so the
+  card calls no outside service to show it. It encodes `qrTarget` if set, else
+  `https://<domain>/`. To use your own, drop a `qr.svg` in `public/<name>/` — it
+  is copied over the generated one.
 - **A remote `photoUrl` is fetched at build time** so it can be embedded in the
   `.vcf`. It is the only network call the build makes, it has an 8-second timeout,
   and failing it only costs you the photo in the contact file.
@@ -350,12 +350,13 @@ cd frrcard
 cp data/example.json.sample data/jane.json
 $EDITOR data/jane.json
 
+pnpm install --prod              # the QR generator build.js needs
 node build.js                    # built dist/jane/index.html (jane.example.com)
                                  # built dist/jane/contact.vcf (Jane Doe)
 node serve.js dist/jane          # http://localhost:8080
 ```
 
-Requirements: Node.js 18 or newer (only for the build — the output is static),
+Requirements: Node.js 18 or newer and pnpm (only for the build — the output is static),
 optionally [`just`](https://github.com/casey/just) for the recipes and `rsync`
 for deploying.
 

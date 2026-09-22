@@ -4,6 +4,14 @@
 # image by ~100 MB.
 FROM node:22-alpine AS node
 
+# The build's runtime dependencies (the QR generator), installed here so pnpm
+# stays out of the final image too.
+FROM node AS deps
+WORKDIR /app
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable \
+ && pnpm install --prod --frozen-lockfile
+
 FROM alpine:3.22
 
 LABEL org.opencontainers.image.title="FrrCard" \
@@ -19,6 +27,7 @@ RUN apk add --no-cache libstdc++ \
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY build.js serve.js template.html example.json ./
 
 # data/ and public/ are mounted read-only; dist/ is rebuilt on every start. An

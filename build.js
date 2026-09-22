@@ -3,6 +3,7 @@
 // plus a downloadable dist/<name>/contact.vcf built from the same data.
 const fs = require('fs');
 const path = require('path');
+const qrcode = require('qrcode-generator');
 
 const ROOT = __dirname;
 const TEMPLATE_PATH = path.join(ROOT, 'template.html');
@@ -15,6 +16,7 @@ const EXAMPLE_PATH = path.join(ROOT, 'example.json');
 const EXAMPLE_KEY = 'example';
 const CREDIT_URL = 'https://apps.frrcode.com/en/frrcard/';
 
+const QR_FILE = 'qr.svg';
 const VCARD_FILE = 'contact.vcf';
 const VCARD_LABEL = 'Save Contact';
 const PHOTO_TIMEOUT_MS = 8000;
@@ -244,12 +246,25 @@ function renderVcard(data, photo, canonicalUrl) {
   return lines.map(foldLine).join('\r\n') + '\r\n';
 }
 
+// --- QR code ---------------------------------------------------------------
+
+// Rendered locally at build time, so viewing a card calls no outside service.
+// UTF-8 so a non-ASCII qrTarget encodes the way phone scanners decode it.
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+
+function renderQr(text) {
+  const qr = qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  // No quiet zone of its own: the .qr-section img padding supplies it.
+  return qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+}
+
 // --- page ------------------------------------------------------------------
 
 function render(template, data) {
   const linksHtml = data.links.map(renderLink).join('\n');
   const canonicalUrl = `https://${data.domain}/`;
-  const qrTarget = data.qrTarget || canonicalUrl;
   const vcardHtml = data.vcard === false
     ? ''
     : `      <a class="link" href="./${VCARD_FILE}" type="text/vcard">\n        ${VCARD_ICON}\n        ${escapeHtml(data.vcardLabel || VCARD_LABEL)}\n      </a>\n`;
@@ -264,7 +279,7 @@ function render(template, data) {
     CANONICAL_URL: canonicalUrl,
     DESCRIPTION: data.description,
     OG_IMAGE: data.photoUrl,
-    QR_IMAGE: `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(qrTarget)}`,
+    QR_IMAGE: `./${QR_FILE}`,
     QR_LABEL: data.domain,
     VCARD: vcardHtml,
     LINKS: linksHtml,
@@ -302,6 +317,7 @@ async function main() {
     const outDir = path.join(DIST_DIR, key);
     fs.mkdirSync(outDir, { recursive: true });
     fs.writeFileSync(path.join(outDir, 'index.html'), html);
+    fs.writeFileSync(path.join(outDir, QR_FILE), renderQr(data.qrTarget || `https://${data.domain}/`));
 
     const publicDir = path.join(PUBLIC_DIR, key);
     if (fs.existsSync(publicDir)) {

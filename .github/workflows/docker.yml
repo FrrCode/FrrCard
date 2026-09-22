@@ -16,6 +16,8 @@ on:
       - build.js
       - serve.js
       - template.html
+      - package.json
+      - pnpm-lock.yaml
       - .github/workflows/docker.yml
   workflow_dispatch:
 
@@ -80,9 +82,13 @@ jobs:
           curl -fsS  http://localhost:8080/jane/ | grep -q 'Jane Doe'
           curl -fsSI http://localhost:8080/jane/contact.vcf | grep -qi 'text/vcard'
           curl -fsS  http://localhost:8080/jane/contact.vcf | grep -q '^FN:Jane Doe'
+          curl -fsS  http://localhost:8080/jane/ | grep -q 'src="./qr.svg"'
+          ! curl -fsS http://localhost:8080/jane/ | grep -q 'api.qrserver.com'
+          curl -fsSI http://localhost:8080/jane/qr.svg | grep -qi 'image/svg+xml'
+          curl -fsS  http://localhost:8080/jane/qr.svg | grep -q '^<svg'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/nope)" = 404
 
-          echo "the image serves the card, its contact file and the health endpoint"
+          echo "the image serves the card, its contact file, its QR code and the health endpoint"
 
           # A first run has no data of its own: the image must fall back to the
           # bundled example rather than serving 404s.

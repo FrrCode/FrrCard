@@ -5,3 +5,6 @@
 !template.html
 # ...but it does carry the demo card, shown until a real data/ is mounted.
 !example.json
+# package.json and the lockfile, for the build's own dependencies.
+!package.json
+!pnpm-lock.yaml
