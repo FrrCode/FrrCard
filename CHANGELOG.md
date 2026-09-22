@@ -16,6 +16,10 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 - **just:** run every deploy step over one ssh connection ([`9ea24b9`](https://github.com/FrrCode/FrrCard/commit/9ea24b97f182509b8cf286a7190d630a7518bef4))
 
+### Chores
+
+- **gitignore:** ignore tmp directory for scratch notes and handovers ([`67b94dc`](https://github.com/FrrCode/FrrCard/commit/67b94dc1a7045cd12653494fddfa02ae4b95aa93))
+
 ## [v1.1.3](https://github.com/FrrCode/FrrCard/compare/v1.1.2...v1.1.3) — 2026-09-22
 
 ### Features
