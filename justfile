@@ -1,11 +1,25 @@
 hostname := env("DEPLOY_HOST", "frrcode")
+# Where the server's compose file lives, the frrcard service in it, and the
+# directory its data/ and public/ mounts point at (relative to the ssh home).
+compose_dir := env("DEPLOY_COMPOSE_DIR", ".")
+service := env("DEPLOY_SERVICE", "frrcard")
+card_dir := env("DEPLOY_CARD_DIR", "data/frrcard")
 
 # Render every data/*.json into dist/<name>/
 build:
     node build.js
 
-# Build, then mirror dist/ onto the server
+# The local build is only a check: a broken data file fails here, not in production.
+# The container is recreated, not restarted: cards only render on start, and a
+# fresh dist/ drops any card whose JSON is gone. --wait holds until it is healthy.
+# Sync data/ and public/ to the server, then run the latest released image on them
 deploy : build
+    rsync -avz --delete --include='*.json' --exclude='*' data/ {{hostname}}:{{card_dir}}/data/
+    rsync -avz --delete --exclude='.gitkeep' public/ {{hostname}}:{{card_dir}}/public/
+    ssh {{hostname}} 'cd {{compose_dir}} && docker compose pull -q {{service}} && docker compose up -d --force-recreate --wait {{service}}'
+
+# Build, then mirror dist/ onto a static web root instead of running the image
+deploy-static : build
     rsync -avz --delete dist/ {{hostname}}:deployments/card
 
 # Rewrite CHANGELOG.md from the git history

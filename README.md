@@ -191,6 +191,23 @@ Whichever you pick, the `domain` field in the data file should match the public
 URL — it drives the canonical link and the QR code, and the container has no way
 to know what's in front of it.
 
+### Deploying from a checkout
+
+Your card data lives on your machine, not in git, so something has to carry it to
+the server. `just deploy` does that for a server running the image under compose:
+
+```bash
+just deploy                       # build locally as a check, sync data/ and public/,
+                                  # pull the latest release, recreate the container
+DEPLOY_HOST=my-server just deploy # override the ssh host (default: frrcode)
+```
+
+It expects a service named `frrcard` in the compose file in your ssh home, with
+its mounts at `data/frrcard/data` and `data/frrcard/public`. `DEPLOY_COMPOSE_DIR`,
+`DEPLOY_SERVICE` and `DEPLOY_CARD_DIR` move those. Both syncs use `--delete`, so
+a data file removed locally disappears from the server too — and since the
+container is recreated rather than restarted, so does its card.
+
 ## The data file
 
 Each `data/<name>.json` produces the card at `/<name>/`. The file name is the
@@ -358,7 +375,7 @@ node serve.js dist/jane          # http://localhost:8080
 
 Requirements: Node.js 18 or newer and pnpm (only for the build — the output is static),
 optionally [`just`](https://github.com/casey/just) for the recipes and `rsync`
-for deploying.
+and `ssh` for deploying.
 
 `serve.js` is the same server the image runs: `node serve.js` serves all of
 `dist/` with cards at `/<name>/`, `CARD=jane` or a path argument serves one card
@@ -413,11 +430,11 @@ every other static host take it as-is.
 
 ```bash
 just build                        # node build.js
-just deploy                       # build, then rsync dist/ to the server
-DEPLOY_HOST=my-server just deploy # override the target host (default: frrcode)
+just deploy-static                       # build, then rsync dist/ to the server
+DEPLOY_HOST=my-server just deploy-static # override the target host (default: frrcode)
 ```
 
-`just deploy` runs `rsync -avz --delete dist/ <host>:deployments/card`. **`--delete`
+`just deploy-static` runs `rsync -avz --delete dist/ <host>:deployments/card`. **`--delete`
 is real** — it mirrors `dist/` onto the target directory and removes anything
 else there, so give the cards their own directory. Point the recipe at wherever
 your web root lives.
