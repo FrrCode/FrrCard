@@ -12,11 +12,20 @@ build:
 # The local build is only a check: a broken data file fails here, not in production.
 # The container is recreated, not restarted: cards only render on start, and a
 # fresh dist/ drops any card whose JSON is gone. --wait holds until it is healthy.
+# Every step rides one multiplexed ssh connection: three back-to-back logins trip
+# the server's per-source connection throttling and get reset mid-handshake.
 # Sync data/ and public/ to the server, then run the latest released image on them
 deploy : build
-    rsync -avz --delete --include='*.json' --exclude='*' data/ {{hostname}}:{{card_dir}}/data/
-    rsync -avz --delete --exclude='.gitkeep' public/ {{hostname}}:{{card_dir}}/public/
-    ssh {{hostname}} 'cd {{compose_dir}} && docker compose pull -q {{service}} && docker compose up -d --force-recreate --wait {{service}}'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    socket="$(mktemp -u "${TMPDIR:-/tmp}/frrcard-deploy.XXXXXX")"
+    ssh -fNM -o ControlPath="$socket" {{hostname}}
+    trap 'ssh -o ControlPath="$socket" -O exit {{hostname}} 2>/dev/null' EXIT
+    remote="ssh -o ControlPath=$socket"
+
+    rsync -avz --delete -e "$remote" --include='*.json' --exclude='*' data/ {{hostname}}:{{card_dir}}/data/
+    rsync -avz --delete -e "$remote" --exclude='.gitkeep' public/ {{hostname}}:{{card_dir}}/public/
+    $remote {{hostname}} 'cd {{compose_dir}} && docker compose pull -q {{service}} && docker compose up -d --force-recreate --wait {{service}}'
 
 # Build, then mirror dist/ onto a static web root instead of running the image
 deploy-static : build
