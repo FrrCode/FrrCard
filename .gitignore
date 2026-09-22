@@ -8,3 +8,6 @@ data/*
 !data/example.json.sample
 public/*/*
 !public/*/.gitkeep
+
+# Scratch notes and handovers, never committed.
+tmp/
