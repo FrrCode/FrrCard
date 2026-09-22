@@ -6,7 +6,11 @@ Generated from the git history by `node changelog.js` — edit the commit
 messages, not this file. Entries come from [Conventional Commits](https://www.conventionalcommits.org/)
 subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased](https://github.com/FrrCode/FrrCard/compare/v1.1.2...HEAD)
+## [v1.1.3](https://github.com/FrrCode/FrrCard/compare/v1.1.2...v1.1.3) — 2026-09-22
+
+### Features
+
+- **qr:** generate the qr code locally at build time ([`96d54b1`](https://github.com/FrrCode/FrrCard/commit/96d54b12a1fd1cbcb3da60d135b720e74917de9b))
 
 ### CI
 
