@@ -12,6 +12,10 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 - **just:** deploy the released image instead of rsyncing dist ([`4b40012`](https://github.com/FrrCode/FrrCard/commit/4b4001285ff8e82b644644e08afe83be54d10155))
 
+### Fixes
+
+- **just:** run every deploy step over one ssh connection ([`9ea24b9`](https://github.com/FrrCode/FrrCard/commit/9ea24b97f182509b8cf286a7190d630a7518bef4))
+
 ## [v1.1.3](https://github.com/FrrCode/FrrCard/compare/v1.1.2...v1.1.3) — 2026-09-22
 
 ### Features
