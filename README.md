@@ -14,8 +14,8 @@ static host.
 Built by [frrcode.com](https://frrcode.com). Free to use, fork, and self-host —
 just not to resell ([license](#license)).
 
-**Live demo → [petr.nzrv.dev](https://petr.nzrv.dev)** — a card built by this repo,
-running in production.
+**Live demo → [jane.frrcode.com](https://jane.frrcode.com)** — the bundled example
+card, built by this repo and running in production.
 
 <p align="center">
   <img src="docs/card-light.png" alt="FrrCard in light mode" width="45%">
