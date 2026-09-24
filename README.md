@@ -267,7 +267,7 @@ to turn a bare value into the right kind of href.
 | `schedule` | Schedule Meeting | full URL | the URL (Calendly, Cal.com, …) |
 | `linkedin` | LinkedIn | full profile URL | the URL |
 | `email` | Email | address | `mailto:` |
-| `phone` | Phone | `+972585007535` | `tel:` with spaces and dashes stripped |
+| `phone` | Phone | `+1 555 123 4567` | `tel:` with spaces and dashes stripped |
 | `whatsapp` | WhatsApp | phone number | `https://wa.me/<digits>` |
 | `telegram` | Telegram | `@handle`, `handle`, or full URL | `https://t.me/handle` |
 | `instagram` | Instagram | `@handle`, `handle`, or full URL | `https://www.instagram.com/handle` |
