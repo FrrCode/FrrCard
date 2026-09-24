@@ -10,6 +10,7 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 ### Features
 
+- **example:** cover every link type in the bundled example card ([`19dc2d3`](https://github.com/FrrCode/FrrCard/commit/19dc2d369b3244e1d532d8ffa08120e708036051))
 - **just:** deploy the released image instead of rsyncing dist ([`4b40012`](https://github.com/FrrCode/FrrCard/commit/4b4001285ff8e82b644644e08afe83be54d10155))
 
 ### Fixes
