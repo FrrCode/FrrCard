@@ -14,6 +14,14 @@
       "value": "https://jane.example.com"
     },
     {
+      "type": "company",
+      "value": "https://studio.example.com"
+    },
+    {
+      "type": "cv",
+      "value": "https://jane.example.com/cv.pdf"
+    },
+    {
       "type": "schedule",
       "value": "https://cal.com/jane",
       "label": "Book a studio visit"
