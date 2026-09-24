@@ -17,6 +17,11 @@ subjects; the layout follows [Keep a Changelog](https://keepachangelog.com/en/1.
 
 - **just:** run every deploy step over one ssh connection ([`9ea24b9`](https://github.com/FrrCode/FrrCard/commit/9ea24b97f182509b8cf286a7190d630a7518bef4))
 
+### Documentation
+
+- **readme:** use a placeholder number in the phone link example ([`5efcc29`](https://github.com/FrrCode/FrrCard/commit/5efcc297616ff8c05e3447a5163bac77993d9eff))
+- **readme:** show the jane demo card instead of a personal one ([`b0a9c2b`](https://github.com/FrrCode/FrrCard/commit/b0a9c2bba875c5702e381a2101da5dbe1d071b44))
+
 ### Chores
 
 - **gitignore:** ignore tmp directory for scratch notes and handovers ([`67b94dc`](https://github.com/FrrCode/FrrCard/commit/67b94dc1a7045cd12653494fddfa02ae4b95aa93))
